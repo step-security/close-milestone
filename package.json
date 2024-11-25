@@ -2,8 +2,9 @@
   "name": "close-milestone",
   "version": "1.0.0",
   "description": "A Github action to close a milestone by the milestone's name",
-  "main": "dist/index.js",
-  "scripts": {
+  "main": "src/index.js",
+   "scripts": {
+    "build": "ncc build src/index.js -o dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
