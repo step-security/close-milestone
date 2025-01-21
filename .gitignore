@@ -1,5 +1,9 @@
-# Dependencies
 node_modules/
+
+.env
+.env.test
+
+coverage
 
 # Build output
 dist/
