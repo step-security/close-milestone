@@ -4,7 +4,7 @@
   "description": "A GitHub Action to close a milestone by the milestone's name",
   "main": "src/index.ts",
   "scripts": {
-    "bundle": "npm run format:write && npm run ",
+    "bundle": "npm run format:write && npm run package",
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "lint": "npx eslint . -c ./.github/linters/.eslintrc.yml",
     "format:write": "npx prettier --write .",
