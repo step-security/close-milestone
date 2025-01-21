@@ -1,4 +1,4 @@
-import { run } from './main';
+import { run } from "./main";
 
 //starts the workflow
 void run();

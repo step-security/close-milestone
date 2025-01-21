@@ -29197,9 +29197,9 @@ async function authenticate() {
 }
 function getAuthorization() {
     if (token === null) {
-        throw new Error('Autorization is not ready, token has not been retreived');
+        throw new Error("Autorization is not ready, token has not been retreived");
     }
-    return 'Bearer ' + token.token;
+    return "Bearer " + token.token;
 }
 
 
@@ -29256,11 +29256,11 @@ async function validateSubscription() {
     }
     catch (error) {
         if ((0, axios_1.isAxiosError)(error) && error.response) {
-            core.error('Subscription is not valid. Reach out to support@stepsecurity.io');
+            core.error("Subscription is not valid. Reach out to support@stepsecurity.io");
             process.exit(1);
         }
         else {
-            core.info('Timeout or API not reachable. Continuing to next step.');
+            core.info("Timeout or API not reachable. Continuing to next step.");
         }
     }
 }
@@ -29271,7 +29271,7 @@ async function validateSubscription() {
  */
 async function run() {
     await validateSubscription();
-    const milestoneName = core.getInput('milestone_name');
+    const milestoneName = core.getInput("milestone_name");
     try {
         const repoInformation = getRepositoryInformation();
         await (0, auth_1.authenticate)();
@@ -29283,7 +29283,7 @@ async function run() {
         }
         await (0, milestones_1.closeMilestone)(id, repoInformation);
         console.log(`Successfully closed milestone ${milestoneName} (${id}).`);
-        core.setOutput('milestone_id', id);
+        core.setOutput("milestone_id", id);
     }
     catch (error) {
         if (error instanceof Error) {
@@ -29292,19 +29292,19 @@ async function run() {
     }
 }
 function handleMissingMilestone() {
-    if (core.getBooleanInput('crash_on_missing')) {
-        core.setFailed('Milestone with provided name not found');
+    if (core.getBooleanInput("crash_on_missing")) {
+        core.setFailed("Milestone with provided name not found");
     }
     else {
-        core.warning('Action stopped because no milestone was found');
+        core.warning("Action stopped because no milestone was found");
     }
 }
 function getRepositoryInformation() {
     const repoUrl = process.env.CLOSE_MILESTONE_REPOSITORY ?? process.env.GITHUB_REPOSITORY;
-    if (!repoUrl || !repoUrl.includes('/')) {
+    if (!repoUrl || !repoUrl.includes("/")) {
         throw new Error(`Cannot determine repository owner and name because repository url does not comply with owner/repo and instead is ${repoUrl}`);
     }
-    const [owner, name] = repoUrl.split('/');
+    const [owner, name] = repoUrl.split("/");
     return {
         owner,
         name,
@@ -29332,7 +29332,7 @@ async function getMilestones(repository) {
     console.log(`Fetching milestones from repository ${repository.owner}/${repository.name}...`);
     const { request } = await __nccwpck_require__.e(/* import() */ 870).then(__nccwpck_require__.bind(__nccwpck_require__, 9870));
     //uses Octokit for request
-    const response = await request('GET /repos/{owner}/{repo}/milestones', {
+    const response = await request("GET /repos/{owner}/{repo}/milestones", {
         headers: {
             authorization: (0, auth_1.getAuthorization)(),
         },
@@ -29371,14 +29371,14 @@ async function closeMilestone(milestoneId, repository) {
     console.log(`Closing milestone  with id ${milestoneId}...`);
     const { request } = await __nccwpck_require__.e(/* import() */ 870).then(__nccwpck_require__.bind(__nccwpck_require__, 9870));
     //try to close milestone
-    await request('PATCH /repos/{owner}/{repo}/milestones/{milestone_number}', {
+    await request("PATCH /repos/{owner}/{repo}/milestones/{milestone_number}", {
         headers: {
             authorization: (0, auth_1.getAuthorization)(),
         },
         owner: repository.owner,
         repo: repository.name,
         milestone_number: milestoneId,
-        state: 'closed',
+        state: "closed",
     });
 }
 

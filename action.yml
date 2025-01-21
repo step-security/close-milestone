@@ -1,21 +1,21 @@
-name: 'Close a milestone by its name'
-description: 'Closes a milestone with the provided name'
-author: 'step-security'
+name: "Close a milestone by its name"
+description: "Closes a milestone with the provided name"
+author: "step-security"
 branding:
   icon: archive
   color: blue
 inputs:
   milestone_name:
-    description: 'The name of the milestone.'
+    description: "The name of the milestone."
     required: true
   crash_on_missing:
     description:
-      'If the action should crash with an exit code if the provided milestone is
-      not found.'
+      "If the action should crash with an exit code if the provided milestone is
+      not found."
     default: false
 outputs:
   milestone_id:
-    description: 'The id of the milestone which has been closed.'
+    description: "The id of the milestone which has been closed."
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: "node20"
+  main: "dist/index.js"

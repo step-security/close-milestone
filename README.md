@@ -3,10 +3,13 @@
 A GitHub Action to remove a milestone by the milestone's name
 
 ## Inputs
+
 ### `milestone_name`
+
 **Required** The name of the milestone, to close.
 
 ### `crash_on_missing`
+
 If the milestone should fail if the provided milestone is missing<br> Default:
 false
 
@@ -23,7 +26,9 @@ If provided, this variable overrides the repository used to close the milestone
 for. It has to be provided in the format of `<owner>/<repository name>`
 
 ## Outputs
+
 ### `milestone_id`
+
 The ID of the milestone which has been closed.
 
 ## Explanation for usage

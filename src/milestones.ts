@@ -1,8 +1,8 @@
-import { Endpoints } from '@octokit/types';
-import { getAuthorization } from './auth';
+import { Endpoints } from "@octokit/types";
+import { getAuthorization } from "./auth";
 
 type Milestones =
-  Endpoints['GET /repos/{owner}/{repo}/milestones']['response']['data'];
+  Endpoints["GET /repos/{owner}/{repo}/milestones"]["response"]["data"];
 
 export type RepositoryInformation = {
   owner: string;
@@ -20,10 +20,10 @@ export async function getMilestones(
     `Fetching milestones from repository ${repository.owner}/${repository.name}...`,
   );
 
-  const { request } = await import('@octokit/request');
+  const { request } = await import("@octokit/request");
 
   //uses Octokit for request
-  const response = await request('GET /repos/{owner}/{repo}/milestones', {
+  const response = await request("GET /repos/{owner}/{repo}/milestones", {
     headers: {
       authorization: getAuthorization(),
     },
@@ -71,16 +71,16 @@ export async function closeMilestone(
 ): Promise<void> {
   console.log(`Closing milestone  with id ${milestoneId}...`);
 
-  const { request } = await import('@octokit/request');
+  const { request } = await import("@octokit/request");
 
   //try to close milestone
-  await request('PATCH /repos/{owner}/{repo}/milestones/{milestone_number}', {
+  await request("PATCH /repos/{owner}/{repo}/milestones/{milestone_number}", {
     headers: {
       authorization: getAuthorization(),
     },
     owner: repository.owner,
     repo: repository.name,
     milestone_number: milestoneId,
-    state: 'closed',
+    state: "closed",
   });
 }
