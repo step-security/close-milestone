@@ -32518,7 +32518,6 @@ class Comparator {
       }
     }
 
-    comp = comp.trim().split(/\s+/).join(' ')
     debug('comparator', comp, options)
     this.options = options
     this.loose = !!options.loose
@@ -32581,6 +32580,13 @@ class Comparator {
       throw new TypeError('a Comparator is required')
     }
 
+    if (!options || typeof options !== 'object') {
+      options = {
+        loose: !!options,
+        includePrerelease: false,
+      }
+    }
+
     if (this.operator === '') {
       if (this.value === '') {
         return true
@@ -32593,50 +32599,39 @@ class Comparator {
       return new Range(this.value, options).test(comp.semver)
     }
 
-    options = parseOptions(options)
+    const sameDirectionIncreasing =
+      (this.operator === '>=' || this.operator === '>') &&
+      (comp.operator === '>=' || comp.operator === '>')
+    const sameDirectionDecreasing =
+      (this.operator === '<=' || this.operator === '<') &&
+      (comp.operator === '<=' || comp.operator === '<')
+    const sameSemVer = this.semver.version === comp.semver.version
+    const differentDirectionsInclusive =
+      (this.operator === '>=' || this.operator === '<=') &&
+      (comp.operator === '>=' || comp.operator === '<=')
+    const oppositeDirectionsLessThan =
+      cmp(this.semver, '<', comp.semver, options) &&
+      (this.operator === '>=' || this.operator === '>') &&
+        (comp.operator === '<=' || comp.operator === '<')
+    const oppositeDirectionsGreaterThan =
+      cmp(this.semver, '>', comp.semver, options) &&
+      (this.operator === '<=' || this.operator === '<') &&
+        (comp.operator === '>=' || comp.operator === '>')
 
-    // Special cases where nothing can possibly be lower
-    if (options.includePrerelease &&
-      (this.value === '<0.0.0-0' || comp.value === '<0.0.0-0')) {
-      return false
-    }
-    if (!options.includePrerelease &&
-      (this.value.startsWith('<0.0.0') || comp.value.startsWith('<0.0.0'))) {
-      return false
-    }
-
-    // Same direction increasing (> or >=)
-    if (this.operator.startsWith('>') && comp.operator.startsWith('>')) {
-      return true
-    }
-    // Same direction decreasing (< or <=)
-    if (this.operator.startsWith('<') && comp.operator.startsWith('<')) {
-      return true
-    }
-    // same SemVer and both sides are inclusive (<= or >=)
-    if (
-      (this.semver.version === comp.semver.version) &&
-      this.operator.includes('=') && comp.operator.includes('=')) {
-      return true
-    }
-    // opposite directions less than
-    if (cmp(this.semver, '<', comp.semver, options) &&
-      this.operator.startsWith('>') && comp.operator.startsWith('<')) {
-      return true
-    }
-    // opposite directions greater than
-    if (cmp(this.semver, '>', comp.semver, options) &&
-      this.operator.startsWith('<') && comp.operator.startsWith('>')) {
-      return true
-    }
-    return false
+    return (
+      sameDirectionIncreasing ||
+      sameDirectionDecreasing ||
+      (sameSemVer && differentDirectionsInclusive) ||
+      oppositeDirectionsLessThan ||
+      oppositeDirectionsGreaterThan
+    )
   }
 }
 
 module.exports = Comparator
 
 const parseOptions = __nccwpck_require__(356)
-const { safeRe: re, t } = __nccwpck_require__(5471)
+const { re, t } = __nccwpck_require__(5471)
 const cmp = __nccwpck_require__(8646)
 const debug = __nccwpck_require__(1159)
 const SemVer = __nccwpck_require__(7163)
@@ -32647,8 +32642,6 @@ const Range = __nccwpck_require__(6782)
 
 /***/ 6782:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const SPACE_CHARACTERS = /\s+/g
 
 // hoisted class for cyclic dependency
 class Range {
@@ -32670,7 +32663,7 @@ class Range {
       // just put it in the set and return
       this.raw = range.value
       this.set = [[range]]
-      this.formatted = undefined
+      this.format()
       return this
     }
 
@@ -32678,13 +32671,9 @@ class Range {
     this.loose = !!options.loose
     this.includePrerelease = !!options.includePrerelease
 
-    // First reduce all whitespace as much as possible so we do not have to rely
-    // on potentially slow regexes like \s*. This is then stored and used for
-    // future error messages as well.
-    this.raw = range.trim().replace(SPACE_CHARACTERS, ' ')
-
-    // First, split on ||
-    this.set = this.raw
+    // First, split based on boolean or ||
+    this.raw = range
+    this.set = range
       .split('||')
       // map the range to a 2d array of comparators
       .map(r => this.parseRange(r.trim()))
@@ -32694,7 +32683,7 @@ class Range {
       .filter(c => c.length)
 
     if (!this.set.length) {
-      throw new TypeError(`Invalid SemVer Range: ${this.raw}`)
+      throw new TypeError(`Invalid SemVer Range: ${range}`)
     }
 
     // if we have any that are not the null set, throw out null sets.
@@ -32715,29 +32704,16 @@ class Range {
       }
     }
 
-    this.formatted = undefined
-  }
-
-  get range () {
-    if (this.formatted === undefined) {
-      this.formatted = ''
-      for (let i = 0; i < this.set.length; i++) {
-        if (i > 0) {
-          this.formatted += '||'
-        }
-        const comps = this.set[i]
-        for (let k = 0; k < comps.length; k++) {
-          if (k > 0) {
-            this.formatted += ' '
-          }
-          this.formatted += comps[k].toString().trim()
-        }
-      }
-    }
-    return this.formatted
+    this.format()
   }
 
   format () {
+    this.range = this.set
+      .map((comps) => {
+        return comps.join(' ').trim()
+      })
+      .join('||')
+      .trim()
     return this.range
   }
 
@@ -32746,12 +32722,12 @@ class Range {
   }
 
   parseRange (range) {
+    range = range.trim()
+
     // memoize range parsing for performance.
     // this is a very hot path, and fully deterministic.
-    const memoOpts =
-      (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) |
-      (this.options.loose && FLAG_LOOSE)
-    const memoKey = memoOpts + ':' + range
+    const memoOpts = Object.keys(this.options).join(',')
+    const memoKey = `parseRange:${memoOpts}:${range}`
     const cached = cache.get(memoKey)
     if (cached) {
       return cached
@@ -32762,18 +32738,18 @@ class Range {
     const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE]
     range = range.replace(hr, hyphenReplace(this.options.includePrerelease))
     debug('hyphen replace', range)
-
     // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
     range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace)
     debug('comparator trim', range)
 
     // `~ 1.2.3` => `~1.2.3`
     range = range.replace(re[t.TILDETRIM], tildeTrimReplace)
-    debug('tilde trim', range)
 
     // `^ 1.2.3` => `^1.2.3`
     range = range.replace(re[t.CARETTRIM], caretTrimReplace)
-    debug('caret trim', range)
+
+    // normalize spaces
+    range = range.split(/\s+/).join(' ')
 
     // At this point, the range is completely trimmed and
     // ready to be split into comparators.
@@ -32859,24 +32835,22 @@ class Range {
     return false
   }
 }
-
 module.exports = Range
 
-const LRU = __nccwpck_require__(1383)
-const cache = new LRU()
+const LRU = __nccwpck_require__(2762)
+const cache = new LRU({ max: 1000 })
 
 const parseOptions = __nccwpck_require__(356)
 const Comparator = __nccwpck_require__(9379)
 const debug = __nccwpck_require__(1159)
 const SemVer = __nccwpck_require__(7163)
 const {
-  safeRe: re,
+  re,
   t,
   comparatorTrimReplace,
   tildeTrimReplace,
   caretTrimReplace,
 } = __nccwpck_require__(5471)
-const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = __nccwpck_require__(5101)
 
 const isNullSet = c => c.value === '<0.0.0-0'
 const isAny = c => c.value === ''
@@ -32924,13 +32898,10 @@ const isX = id => !id || id.toLowerCase() === 'x' || id === '*'
 // ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0-0
 // ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0-0
 // ~0.0.1 --> >=0.0.1 <0.1.0-0
-const replaceTildes = (comp, options) => {
-  return comp
-    .trim()
-    .split(/\s+/)
-    .map((c) => replaceTilde(c, options))
-    .join(' ')
-}
+const replaceTildes = (comp, options) =>
+  comp.trim().split(/\s+/).map((c) => {
+    return replaceTilde(c, options)
+  }).join(' ')
 
 const replaceTilde = (comp, options) => {
   const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE]
@@ -32968,13 +32939,10 @@ const replaceTilde = (comp, options) => {
 // ^1.2.0 --> >=1.2.0 <2.0.0-0
 // ^0.0.1 --> >=0.0.1 <0.0.2-0
 // ^0.1.0 --> >=0.1.0 <0.2.0-0
-const replaceCarets = (comp, options) => {
-  return comp
-    .trim()
-    .split(/\s+/)
-    .map((c) => replaceCaret(c, options))
-    .join(' ')
-}
+const replaceCarets = (comp, options) =>
+  comp.trim().split(/\s+/).map((c) => {
+    return replaceCaret(c, options)
+  }).join(' ')
 
 const replaceCaret = (comp, options) => {
   debug('caret', comp, options)
@@ -33031,10 +32999,9 @@ const replaceCaret = (comp, options) => {
 
 const replaceXRanges = (comp, options) => {
   debug('replaceXRanges', comp, options)
-  return comp
-    .split(/\s+/)
-    .map((c) => replaceXRange(c, options))
-    .join(' ')
+  return comp.split(/\s+/).map((c) => {
+    return replaceXRange(c, options)
+  }).join(' ')
 }
 
 const replaceXRange = (comp, options) => {
@@ -33117,15 +33084,12 @@ const replaceXRange = (comp, options) => {
 const replaceStars = (comp, options) => {
   debug('replaceStars', comp, options)
   // Looseness is ignored here.  star is always as loose as it gets!
-  return comp
-    .trim()
-    .replace(re[t.STAR], '')
+  return comp.trim().replace(re[t.STAR], '')
 }
 
 const replaceGTE0 = (comp, options) => {
   debug('replaceGTE0', comp, options)
-  return comp
-    .trim()
+  return comp.trim()
     .replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], '')
 }
 
@@ -33134,10 +33098,9 @@ const replaceGTE0 = (comp, options) => {
 // 1.2 - 3.4.5 => >=1.2.0 <=3.4.5
 // 1.2.3 - 3.4 => >=1.2.0 <3.5.0-0 Any 3.4.x will do
 // 1.2 - 3.4 => >=1.2.0 <3.5.0-0
-// TODO build?
 const hyphenReplace = incPr => ($0,
   from, fM, fm, fp, fpr, fb,
-  to, tM, tm, tp, tpr) => {
+  to, tM, tm, tp, tpr, tb) => {
   if (isX(fM)) {
     from = ''
   } else if (isX(fm)) {
@@ -33164,7 +33127,7 @@ const hyphenReplace = incPr => ($0,
     to = `<=${to}`
   }
 
-  return `${from} ${to}`.trim()
+  return (`${from} ${to}`).trim()
 }
 
 const testSet = (set, version, options) => {
@@ -33211,7 +33174,7 @@ const testSet = (set, version, options) => {
 
 const debug = __nccwpck_require__(1159)
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = __nccwpck_require__(5101)
-const { safeRe: re, t } = __nccwpck_require__(5471)
+const { re, t } = __nccwpck_require__(5471)
 
 const parseOptions = __nccwpck_require__(356)
 const { compareIdentifiers } = __nccwpck_require__(3348)
@@ -33227,7 +33190,7 @@ class SemVer {
         version = version.version
       }
     } else if (typeof version !== 'string') {
-      throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version}".`)
+      throw new TypeError(`Invalid Version: ${version}`)
     }
 
     if (version.length > MAX_LENGTH) {
@@ -33369,7 +33332,7 @@ class SemVer {
     do {
       const a = this.build[i]
       const b = other.build[i]
-      debug('build compare', i, a, b)
+      debug('prerelease compare', i, a, b)
       if (a === undefined && b === undefined) {
         return 0
       } else if (b === undefined) {
@@ -33386,36 +33349,36 @@ class SemVer {
 
   // preminor will bump the version up to the next minor release, and immediately
   // down to pre-release. premajor and prepatch work the same way.
-  inc (release, identifier, identifierBase) {
+  inc (release, identifier) {
     switch (release) {
       case 'premajor':
         this.prerelease.length = 0
         this.patch = 0
         this.minor = 0
         this.major++
-        this.inc('pre', identifier, identifierBase)
+        this.inc('pre', identifier)
         break
       case 'preminor':
         this.prerelease.length = 0
         this.patch = 0
         this.minor++
-        this.inc('pre', identifier, identifierBase)
+        this.inc('pre', identifier)
         break
       case 'prepatch':
         // If this is already a prerelease, it will bump to the next version
         // drop any prereleases that might already exist, since they are not
         // relevant at this point.
         this.prerelease.length = 0
-        this.inc('patch', identifier, identifierBase)
-        this.inc('pre', identifier, identifierBase)
+        this.inc('patch', identifier)
+        this.inc('pre', identifier)
         break
       // If the input is a non-prerelease version, this acts the same as
       // prepatch.
       case 'prerelease':
         if (this.prerelease.length === 0) {
-          this.inc('patch', identifier, identifierBase)
+          this.inc('patch', identifier)
         }
-        this.inc('pre', identifier, identifierBase)
+        this.inc('pre', identifier)
         break
 
       case 'major':
@@ -33457,15 +33420,9 @@ class SemVer {
         break
       // This probably shouldn't be used publicly.
       // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
-      case 'pre': {
-        const base = Number(identifierBase) ? 1 : 0
-
-        if (!identifier && identifierBase === false) {
-          throw new Error('invalid increment argument: identifier is empty')
-        }
-
+      case 'pre':
         if (this.prerelease.length === 0) {
-          this.prerelease = [base]
+          this.prerelease = [0]
         } else {
           let i = this.prerelease.length
           while (--i >= 0) {
@@ -33476,36 +33433,27 @@ class SemVer {
           }
           if (i === -1) {
             // didn't increment anything
-            if (identifier === this.prerelease.join('.') && identifierBase === false) {
-              throw new Error('invalid increment argument: identifier already exists')
-            }
-            this.prerelease.push(base)
+            this.prerelease.push(0)
           }
         }
         if (identifier) {
           // 1.2.0-beta.1 bumps to 1.2.0-beta.2,
           // 1.2.0-beta.fooblz or 1.2.0-beta bumps to 1.2.0-beta.0
-          let prerelease = [identifier, base]
-          if (identifierBase === false) {
-            prerelease = [identifier]
-          }
           if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
             if (isNaN(this.prerelease[1])) {
-              this.prerelease = prerelease
+              this.prerelease = [identifier, 0]
             }
           } else {
-            this.prerelease = prerelease
+            this.prerelease = [identifier, 0]
           }
         }
         break
-      }
+
       default:
         throw new Error(`invalid increment argument: ${release}`)
     }
-    this.raw = this.format()
-    if (this.build.length) {
-      this.raw += `+${this.build.join('.')}`
-    }
+    this.format()
+    this.raw = this.version
     return this
   }
 }
@@ -33592,7 +33540,7 @@ module.exports = cmp
 
 const SemVer = __nccwpck_require__(7163)
 const parse = __nccwpck_require__(6353)
-const { safeRe: re, t } = __nccwpck_require__(5471)
+const { re, t } = __nccwpck_require__(5471)
 
 const coerce = (version, options) => {
   if (version instanceof SemVer) {
@@ -33611,43 +33559,35 @@ const coerce = (version, options) => {
 
   let match = null
   if (!options.rtl) {
-    match = version.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE])
+    match = version.match(re[t.COERCE])
   } else {
     // Find the right-most coercible string that does not share
     // a terminus with a more left-ward coercible string.
     // Eg, '1.2.3.4' wants to coerce '2.3.4', not '3.4' or '4'
-    // With includePrerelease option set, '1.2.3.4-rc' wants to coerce '2.3.4-rc', not '2.3.4'
     //
     // Walk through the string checking with a /g regexp
     // Manually set the index so as to pick up overlapping matches.
     // Stop when we get a match that ends at the string end, since no
     // coercible string can be more right-ward without the same terminus.
-    const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL]
     let next
-    while ((next = coerceRtlRegex.exec(version)) &&
+    while ((next = re[t.COERCERTL].exec(version)) &&
         (!match || match.index + match[0].length !== version.length)
     ) {
       if (!match ||
             next.index + next[0].length !== match.index + match[0].length) {
         match = next
       }
-      coerceRtlRegex.lastIndex = next.index + next[1].length + next[2].length
+      re[t.COERCERTL].lastIndex = next.index + next[1].length + next[2].length
     }
     // leave it in a clean state
-    coerceRtlRegex.lastIndex = -1
+    re[t.COERCERTL].lastIndex = -1
   }
 
   if (match === null) {
     return null
   }
 
-  const major = match[2]
-  const minor = match[3] || '0'
-  const patch = match[4] || '0'
-  const prerelease = options.includePrerelease && match[5] ? `-${match[5]}` : ''
-  const build = options.includePrerelease && match[6] ? `+${match[6]}` : ''
-
-  return parse(`${major}.${minor}.${patch}${prerelease}${build}`, options)
+  return parse(`${match[2]}.${match[3] || '0'}.${match[4] || '0'}`, options)
 }
 module.exports = coerce
 
@@ -33694,69 +33634,27 @@ module.exports = compare
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const parse = __nccwpck_require__(6353)
+const eq = __nccwpck_require__(5082)
 
 const diff = (version1, version2) => {
-  const v1 = parse(version1, null, true)
-  const v2 = parse(version2, null, true)
-  const comparison = v1.compare(v2)
-
-  if (comparison === 0) {
+  if (eq(version1, version2)) {
     return null
-  }
-
-  const v1Higher = comparison > 0
-  const highVersion = v1Higher ? v1 : v2
-  const lowVersion = v1Higher ? v2 : v1
-  const highHasPre = !!highVersion.prerelease.length
-  const lowHasPre = !!lowVersion.prerelease.length
-
-  if (lowHasPre && !highHasPre) {
-    // Going from prerelease -> no prerelease requires some special casing
-
-    // If the low version has only a major, then it will always be a major
-    // Some examples:
-    // 1.0.0-1 -> 1.0.0
-    // 1.0.0-1 -> 1.1.1
-    // 1.0.0-1 -> 2.0.0
-    if (!lowVersion.patch && !lowVersion.minor) {
-      return 'major'
+  } else {
+    const v1 = parse(version1)
+    const v2 = parse(version2)
+    const hasPre = v1.prerelease.length || v2.prerelease.length
+    const prefix = hasPre ? 'pre' : ''
+    const defaultResult = hasPre ? 'prerelease' : ''
+    for (const key in v1) {
+      if (key === 'major' || key === 'minor' || key === 'patch') {
+        if (v1[key] !== v2[key]) {
+          return prefix + key
+        }
+      }
     }
-
-    // Otherwise it can be determined by checking the high version
-
-    if (highVersion.patch) {
-      // anything higher than a patch bump would result in the wrong version
-      return 'patch'
-    }
-
-    if (highVersion.minor) {
-      // anything higher than a minor bump would result in the wrong version
-      return 'minor'
-    }
-
-    // bumping major/minor/patch all have same result
-    return 'major'
+    return defaultResult // may be undefined
   }
-
-  // add the `pre` prefix if we are going to a prerelease version
-  const prefix = highHasPre ? 'pre' : ''
-
-  if (v1.major !== v2.major) {
-    return prefix + 'major'
-  }
-
-  if (v1.minor !== v2.minor) {
-    return prefix + 'minor'
-  }
-
-  if (v1.patch !== v2.patch) {
-    return prefix + 'patch'
-  }
-
-  // high and low are preleases
-  return 'prerelease'
 }
-
 module.exports = diff
 
 
@@ -33797,9 +33695,8 @@ module.exports = gte
 
 const SemVer = __nccwpck_require__(7163)
 
-const inc = (version, release, options, identifier, identifierBase) => {
+const inc = (version, release, options, identifier) => {
   if (typeof (options) === 'string') {
-    identifierBase = identifier
     identifier = options
     options = undefined
   }
@@ -33808,7 +33705,7 @@ const inc = (version, release, options, identifier, identifierBase) => {
     return new SemVer(
       version instanceof SemVer ? version.version : version,
       options
-    ).inc(release, identifier, identifierBase).version
+    ).inc(release, identifier).version
   } catch (er) {
     return null
   }
@@ -33871,18 +33768,35 @@ module.exports = neq
 /***/ 6353:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
+const { MAX_LENGTH } = __nccwpck_require__(5101)
+const { re, t } = __nccwpck_require__(5471)
 const SemVer = __nccwpck_require__(7163)
-const parse = (version, options, throwErrors = false) => {
+
+const parseOptions = __nccwpck_require__(356)
+const parse = (version, options) => {
+  options = parseOptions(options)
+
   if (version instanceof SemVer) {
     return version
   }
+
+  if (typeof version !== 'string') {
+    return null
+  }
+
+  if (version.length > MAX_LENGTH) {
+    return null
+  }
+
+  const r = options.loose ? re[t.LOOSE] : re[t.FULL]
+  if (!r.test(version)) {
+    return null
+  }
+
   try {
     return new SemVer(version, options)
   } catch (er) {
-    if (!throwErrors) {
-      return null
-    }
-    throw er
+    return null
   }
 }
 
@@ -34062,7 +33976,6 @@ module.exports = {
   src: internalRe.src,
   tokens: internalRe.t,
   SEMVER_SPEC_VERSION: constants.SEMVER_SPEC_VERSION,
-  RELEASE_TYPES: constants.RELEASE_TYPES,
   compareIdentifiers: identifiers.compareIdentifiers,
   rcompareIdentifiers: identifiers.rcompareIdentifiers,
 }
@@ -34084,29 +33997,11 @@ const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
 // Max safe segment length for coercion.
 const MAX_SAFE_COMPONENT_LENGTH = 16
 
-// Max safe length for a build identifier. The max length minus 6 characters for
-// the shortest version with a build 0.0.0+BUILD.
-const MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6
-
-const RELEASE_TYPES = [
-  'major',
-  'premajor',
-  'minor',
-  'preminor',
-  'patch',
-  'prepatch',
-  'prerelease',
-]
-
 module.exports = {
-  MAX_LENGTH,
-  MAX_SAFE_COMPONENT_LENGTH,
-  MAX_SAFE_BUILD_LENGTH,
-  MAX_SAFE_INTEGER,
-  RELEASE_TYPES,
   SEMVER_SPEC_VERSION,
-  FLAG_INCLUDE_PRERELEASE: 0b001,
-  FLAG_LOOSE: 0b010,
+  MAX_LENGTH,
+  MAX_SAFE_INTEGER,
+  MAX_SAFE_COMPONENT_LENGTH,
 }
 
 
@@ -34158,70 +34053,19 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1383:
-/***/ ((module) => {
-
-class LRUCache {
-  constructor () {
-    this.max = 1000
-    this.map = new Map()
-  }
-
-  get (key) {
-    const value = this.map.get(key)
-    if (value === undefined) {
-      return undefined
-    } else {
-      // Remove the key from the map and add it to the end
-      this.map.delete(key)
-      this.map.set(key, value)
-      return value
-    }
-  }
-
-  delete (key) {
-    return this.map.delete(key)
-  }
-
-  set (key, value) {
-    const deleted = this.delete(key)
-
-    if (!deleted && value !== undefined) {
-      // If cache is full, delete the least recently used item
-      if (this.map.size >= this.max) {
-        const firstKey = this.map.keys().next().value
-        this.delete(firstKey)
-      }
-
-      this.map.set(key, value)
-    }
-
-    return this
-  }
-}
-
-module.exports = LRUCache
-
-
-/***/ }),
-
 /***/ 356:
 /***/ ((module) => {
 
-// parse out just the options we care about
-const looseOption = Object.freeze({ loose: true })
-const emptyOpts = Object.freeze({ })
-const parseOptions = options => {
-  if (!options) {
-    return emptyOpts
-  }
-
-  if (typeof options !== 'object') {
-    return looseOption
-  }
-
-  return options
-}
+// parse out just the options we care about so we always get a consistent
+// obj with keys in a consistent order.
+const opts = ['includePrerelease', 'loose', 'rtl']
+const parseOptions = options =>
+  !options ? {}
+  : typeof options !== 'object' ? { loose: true }
+  : opts.filter(k => options[k]).reduce((o, k) => {
+    o[k] = true
+    return o
+  }, {})
 module.exports = parseOptions
 
 
@@ -34230,52 +34074,22 @@ module.exports = parseOptions
 /***/ 5471:
 /***/ ((module, exports, __nccwpck_require__) => {
 
-const {
-  MAX_SAFE_COMPONENT_LENGTH,
-  MAX_SAFE_BUILD_LENGTH,
-  MAX_LENGTH,
-} = __nccwpck_require__(5101)
+const { MAX_SAFE_COMPONENT_LENGTH } = __nccwpck_require__(5101)
 const debug = __nccwpck_require__(1159)
 exports = module.exports = {}
 
 // The actual regexps go on exports.re
 const re = exports.re = []
-const safeRe = exports.safeRe = []
 const src = exports.src = []
 const t = exports.t = {}
 let R = 0
 
-const LETTERDASHNUMBER = '[a-zA-Z0-9-]'
-
-// Replace some greedy regex tokens to prevent regex dos issues. These regex are
-// used internally via the safeRe object since all inputs in this library get
-// normalized first to trim and collapse all extra whitespace. The original
-// regexes are exported for userland consumption and lower level usage. A
-// future breaking change could export the safer regex only with a note that
-// all input should have extra whitespace removed.
-const safeRegexReplacements = [
-  ['\\s', 1],
-  ['\\d', MAX_LENGTH],
-  [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH],
-]
-
-const makeSafeRegex = (value) => {
-  for (const [token, max] of safeRegexReplacements) {
-    value = value
-      .split(`${token}*`).join(`${token}{0,${max}}`)
-      .split(`${token}+`).join(`${token}{1,${max}}`)
-  }
-  return value
-}
-
 const createToken = (name, value, isGlobal) => {
-  const safe = makeSafeRegex(value)
   const index = R++
   debug(name, index, value)
   t[name] = index
   src[index] = value
   re[index] = new RegExp(value, isGlobal ? 'g' : undefined)
-  safeRe[index] = new RegExp(safe, isGlobal ? 'g' : undefined)
 }
 
 // The following Regular Expressions can be used for tokenizing,
@@ -34285,13 +34099,13 @@ const createToken = (name, value, isGlobal) => {
 // A single `0`, or a non-zero digit followed by zero or more digits.
 
 createToken('NUMERICIDENTIFIER', '0|[1-9]\\d*')
-createToken('NUMERICIDENTIFIERLOOSE', '\\d+')
+createToken('NUMERICIDENTIFIERLOOSE', '[0-9]+')
 
 // ## Non-numeric Identifier
 // Zero or more digits, followed by a letter or hyphen, and then zero or
 // more letters, digits, or hyphens.
 
-createToken('NONNUMERICIDENTIFIER', `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`)
+createToken('NONNUMERICIDENTIFIER', '\\d*[a-zA-Z-][a-zA-Z0-9-]*')
 
 // ## Main Version
 // Three dot-separated numeric identifiers.
@@ -34326,7 +34140,7 @@ createToken('PRERELEASELOOSE', `(?:-?(${src[t.PRERELEASEIDENTIFIERLOOSE]
 // ## Build Metadata Identifier
 // Any combination of digits, letters, or hyphens.
 
-createToken('BUILDIDENTIFIER', `${LETTERDASHNUMBER}+`)
+createToken('BUILDIDENTIFIER', '[0-9A-Za-z-]+')
 
 // ## Build Metadata
 // Plus sign, followed by one or more period-separated build metadata
@@ -34386,17 +34200,12 @@ createToken('XRANGELOOSE', `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAINLOOSE]}$`)
 
 // Coercion.
 // Extract anything that could conceivably be a part of a valid semver
-createToken('COERCEPLAIN', `${'(^|[^\\d])' +
+createToken('COERCE', `${'(^|[^\\d])' +
               '(\\d{1,'}${MAX_SAFE_COMPONENT_LENGTH}})` +
               `(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?` +
-              `(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?`)
-createToken('COERCE', `${src[t.COERCEPLAIN]}(?:$|[^\\d])`)
-createToken('COERCEFULL', src[t.COERCEPLAIN] +
-              `(?:${src[t.PRERELEASE]})?` +
-              `(?:${src[t.BUILD]})?` +
+              `(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?` +
               `(?:$|[^\\d])`)
 createToken('COERCERTL', src[t.COERCE], true)
-createToken('COERCERTLFULL', src[t.COERCEFULL], true)
 
 // Tilde ranges.
 // Meaning is "reasonably at or greater than"
@@ -34469,7 +34278,7 @@ const Range = __nccwpck_require__(6782)
 const intersects = (r1, r2, options) => {
   r1 = new Range(r1, options)
   r2 = new Range(r2, options)
-  return r1.intersects(r2, options)
+  return r1.intersects(r2)
 }
 module.exports = intersects
 
@@ -34832,9 +34641,6 @@ const subset = (sub, dom, options = {}) => {
   return true
 }
 
-const minimumVersionWithPreRelease = [new Comparator('>=0.0.0-0')]
-const minimumVersion = [new Comparator('>=0.0.0')]
-
 const simpleSubset = (sub, dom, options) => {
   if (sub === dom) {
     return true
@@ -34844,9 +34650,9 @@ const simpleSubset = (sub, dom, options) => {
     if (dom.length === 1 && dom[0].semver === ANY) {
       return true
     } else if (options.includePrerelease) {
-      sub = minimumVersionWithPreRelease
+      sub = [new Comparator('>=0.0.0-0')]
     } else {
-      sub = minimumVersion
+      sub = [new Comparator('>=0.0.0')]
     }
   }
 
@@ -34854,7 +34660,7 @@ const simpleSubset = (sub, dom, options) => {
     if (options.includePrerelease) {
       return true
     } else {
-      dom = minimumVersion
+      dom = [new Comparator('>=0.0.0')]
     }
   }
 
