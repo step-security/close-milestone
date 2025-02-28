@@ -34115,9 +34115,8 @@ module.exports = axios;
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
-__nccwpck_require__.r(__webpack_exports__);
 /* harmony export */ __nccwpck_require__.d(__webpack_exports__, {
-/* harmony export */   createTokenAuth: () => (/* binding */ createTokenAuth)
+/* harmony export */   g: () => (/* binding */ createTokenAuth)
 /* harmony export */ });
 // pkg/dist-src/is-jwt.js
 var b64url = "(?:[a-zA-Z0-9_-]+)";
@@ -35159,7 +35158,7 @@ class Octokit {
           type: "unauthenticated"
         });
       } else {
-        const auth = (0,dist_bundle.createTokenAuth)(options.auth);
+        const auth = (0,dist_bundle/* createTokenAuth */.g)(options.auth);
         hook.wrap("request", auth.hook);
         this.auth = auth;
       }
@@ -35277,10 +35276,45 @@ module.exports = /*#__PURE__*/JSON.parse('{"application/1d-interleaved-parityfec
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+
+// EXTERNAL MODULE: ./node_modules/@octokit/auth-token/dist-bundle/index.js
+var dist_bundle = __nccwpck_require__(9313);
+;// CONCATENATED MODULE: ./node_modules/@octokit/auth-action/dist-src/index.js
+
+const createActionAuth = function createActionAuth2() {
+  if (!process.env.GITHUB_ACTION) {
+    throw new Error(
+      "[@octokit/auth-action] `GITHUB_ACTION` environment variable is not set. @octokit/auth-action is meant to be used in GitHub Actions only."
+    );
+  }
+  const definitions = [
+    process.env.GITHUB_TOKEN,
+    process.env.INPUT_GITHUB_TOKEN,
+    process.env.INPUT_TOKEN
+  ].filter(Boolean);
+  if (definitions.length === 0) {
+    throw new Error(
+      "[@octokit/auth-action] `GITHUB_TOKEN` variable is not set. It must be set on either `env:` or `with:`. See https://github.com/octokit/auth-action.js#createactionauth"
+    );
+  }
+  if (definitions.length > 1) {
+    throw new Error(
+      "[@octokit/auth-action] The token variable is specified more than once. Use either `with.token`, `with.GITHUB_TOKEN`, or `env.GITHUB_TOKEN`. See https://github.com/octokit/auth-action.js#createactionauth"
+    );
+  }
+  const token = definitions.pop();
+  return (0,dist_bundle/* createTokenAuth */.g)(token);
+};
+
+
+;// CONCATENATED MODULE: ./src/index.js
 const core = __nccwpck_require__(7484);
 const axios = __nccwpck_require__(7269);
 const { Octokit } = __nccwpck_require__(1714);
-const { createActionAuth } = __nccwpck_require__(9313);
+
 const milestoneName = core.getInput('milestone_name')
 const octokit = new Octokit();
 
@@ -35428,6 +35462,8 @@ async function run() {
 
 //starts the workflow
 run()
+
+})();
 
 module.exports = __webpack_exports__;
 /******/ })()
