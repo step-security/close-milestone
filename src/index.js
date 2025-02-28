@@ -1,7 +1,7 @@
 const core = require('@actions/core');
 const axios = require('axios');
 const { Octokit } = require("@octokit/core");
-const { createActionAuth } = require("@octokit/auth");
+const { createActionAuth } = require("@octokit/auth-token");
 const milestoneName = core.getInput('milestone_name')
 const octokit = new Octokit();
 
