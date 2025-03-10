@@ -236,11 +236,6 @@ jobs:
               continue
             fi
 
-            # Ignore certain files
-            MODIFIED_FILES=$(echo "$COMMIT_DETAILS" | jq -r '.files[].filename' 2>/dev/null || echo "ERROR")
-
-            echo "DEBUG: MODIFIED_FILES Before Filtering:"
-            echo "$MODIFIED_FILES"
 
             FILTERED_FILES=$(echo "$MODIFIED_FILES" | grep -Ev "^package.json$|^package-lock.json$|^yarn.lock$|^node_modules/|^.gitignore")
 
