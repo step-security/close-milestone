@@ -192,8 +192,6 @@ jobs:
 
       - name: Cherry-Pick Changes via gh CLI
         run: |
-          set -e  # Keep this, but ensure we handle errors properly
-
           UPSTREAM_REPO="${{ inputs.original-owner }}/${{ inputs.repo-name }}"
           TARGET_REPO="${{ github.repository }}"
           BRANCH="${{ env.BRANCH_NAME }}"
@@ -202,6 +200,7 @@ jobs:
 
           SKIPPED_COMMITS=""
           CHANGES_FOUND=false
+          MISSING_FILES=""
 
           while read -r COMMIT_HASH; do
             echo "Processing commit: $COMMIT_HASH"
@@ -236,10 +235,6 @@ jobs:
               continue
             fi
 
-
-            echo "DEBUG: MODIFIED_FILES Before Filtering:"
-            echo "$MODIFIED_FILES"
-
             FILTERED_FILES=$(echo "$MODIFIED_FILES" | grep -Ev "^package.json$|^package-lock.json$|^yarn.lock$|^node_modules/|^dist/|^.gitignore" || echo "")
 
             echo "DEBUG: FILTERED_FILES After Filtering:"
@@ -251,20 +246,21 @@ jobs:
               continue
             fi
 
-
             for file in $FILTERED_FILES; do
                 echo "Processing file: $file"
 
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
                 SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
 
-                if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
-                  echo "⚠️ File $file does not exist in target repo. Creating it..."
-                else
-                  BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
-                  if [ "$BASE64_CONTENT" != "ERROR" ]; then
-                    echo "$BASE64_CONTENT" > temp_file.txt
-                  fi
+                if [ "$FILE_RESPONSE" == "ERROR" ] || [ -z "$SHA" ] || [ "$SHA" == "null" ]; then
+                  echo "⚠️ File $file does not exist in target repo."
+                  MISSING_FILES="${MISSING_FILES}\n$file"
+                  continue
+                fi
+
+                BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
+                if [ "$BASE64_CONTENT" != "ERROR" ]; then
+                  echo "$BASE64_CONTENT" > temp_file.txt
                 fi
 
                 PATCH=$(echo "$COMMIT_DETAILS" | jq -r '.files[] | select(.filename=="'$file'") | .patch' 2>/dev/null || echo "ERROR")
@@ -325,6 +321,9 @@ jobs:
           echo -e "$SKIPPED_COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+          echo "MISSING_FILES<<EOF" >> $GITHUB_ENV
+          echo -e "$MISSING_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Set Up Node.js
         if: env.action_type == 'node'
@@ -484,6 +483,13 @@ jobs:
               done <<< "${{ env.SKIPPED_COMMITS }}"
               echo ""
             fi
+            if [ -n "${{ env.MISSING_FILES }}" ]; then
+              echo "❗ Missing Files:"
+              while IFS= read -r line; do
+                echo "- $line"
+              done <<< "${{ env.MISSING_FILES }}"
+              echo ""
+            fi
           } > "$COMMENT_BODY"
 
           EXISTING_COMMENT_ID=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --jq '.[] | select(.body | contains("🚀 PR Updated!")) | .id')
@@ -491,7 +497,7 @@ jobs:
           if [ -n "$EXISTING_COMMENT_ID" ]; then
             echo "Updating existing comment: $EXISTING_COMMENT_ID"
             gh api --method PATCH "repos/$REPO/issues/comments/$EXISTING_COMMENT_ID" \
-              -F body="@$COMMENT_BODY"
+              -F body="$(cat "$COMMENT_BODY")"
           else
             echo "📝 Creating a new comment on PR #$PR_NUMBER"
             gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file "$COMMENT_BODY"
