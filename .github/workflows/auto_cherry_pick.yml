@@ -255,7 +255,6 @@ jobs:
                 FILE_RESPONSE=$(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
 
                 SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
-                SHA=$(echo "$SHA" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
                 echo "DEBUG: RAW FILE_RESPONSE: $FILE_RESPONSE"
                 echo "DEBUG: Trimmed FILE_RESPONSE: $(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')"
                 echo "DEBUG: Extracted SHA: $SHA"
