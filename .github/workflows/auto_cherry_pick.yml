@@ -256,7 +256,11 @@ jobs:
                 echo "Processing file: $file"
 
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
+                echo "DEBUG: FILE_RESPONSE for $file:"
+                echo "$FILE_RESPONSE"
+
                 SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
+                echo "DEBUG: SHA for $file: $SHA"
 
                 if [ "$FILE_RESPONSE" == "ERROR" ] || [ -z "$SHA" ] || [ "$SHA" == "null" ]; then
                   echo "⚠️ File $file does not exist in target repo. Creating it..."
@@ -325,7 +329,6 @@ jobs:
           echo "SKIPPED_COMMITS<<EOF" >> $GITHUB_ENV
           echo -e "$SKIPPED_COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
 
       - name: Set Up Node.js
         if: env.action_type == 'node'
