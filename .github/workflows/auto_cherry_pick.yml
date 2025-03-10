@@ -236,6 +236,10 @@ jobs:
               continue
             fi
 
+
+            echo "DEBUG: MODIFIED_FILES Before Filtering:"
+            echo "$MODIFIED_FILES"
+
             FILTERED_FILES=$(echo "$MODIFIED_FILES" | grep -Ev "^package.json$|^package-lock.json$|^yarn.lock$|^node_modules/|^dist/|^.gitignore" || echo "")
 
             echo "DEBUG: FILTERED_FILES After Filtering:"
@@ -250,28 +254,17 @@ jobs:
 
             for file in $FILTERED_FILES; do
                 echo "Processing file: $file"
+
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
                 SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
 
-                if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
+                if [ "$FILE_RESPONSE" == "ERROR" ] || [ -z "$SHA" ] || [ "$SHA" == "null" ]; then
                   echo "⚠️ File $file does not exist in target repo. Creating it..."
-                  DIRECTORY=$(dirname "$file")
-                  mkdir -p "$DIRECTORY"
-                  if [ ! -d "$DIRECTORY" ]; then
-                    echo "❌ Failed to create directory: $DIRECTORY"
-                    continue  # Skip this commit if directory creation failed
-                  fi
-                  touch "$file"
-                  if [ ! -f "$file" ]; then
-                    echo "❌ Failed to create file: $file"
-                    continue  # Skip this commit if file creation failed
-                  fi
-                  echo "✅ Created missing file: $file"
+                  echo "" > temp_file.txt  # Create an empty file
                 else
-                  echo "✅ File already exists: $file"
                   BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
                   if [ "$BASE64_CONTENT" != "ERROR" ]; then
-                    echo "$BASE64_CONTENT" > "$file"
+                    echo "$BASE64_CONTENT" > temp_file.txt
                   fi
                 fi
 
@@ -283,8 +276,7 @@ jobs:
                 fi
 
                 echo "$PATCH" > temp_patch.diff
-
-                patch --forward "$file" < temp_patch.diff || echo "⚠️ Patch failed for $file, skipping..."
+                patch --forward temp_file.txt < temp_patch.diff
                 PATCH_EXIT_CODE=$?
 
                 if [ "$PATCH_EXIT_CODE" -ne 0 ]; then
@@ -294,7 +286,7 @@ jobs:
                 fi
 
                 # Commit the patched file via GitHub API
-                UPDATED_CONTENT=$(base64 -w 0 "$file")
+                UPDATED_CONTENT=$(base64 -w 0 temp_file.txt)
 
                 COMMIT_PAYLOAD=$(jq -n --arg msg "$COMMIT_MESSAGE" \
                     --arg content "$UPDATED_CONTENT" \
@@ -333,6 +325,7 @@ jobs:
           echo "SKIPPED_COMMITS<<EOF" >> $GITHUB_ENV
           echo -e "$SKIPPED_COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+
 
       - name: Set Up Node.js
         if: env.action_type == 'node'
