@@ -259,6 +259,7 @@ jobs:
                 echo "DEBUG: RAW FILE_RESPONSE: $FILE_RESPONSE"
                 echo "DEBUG: Trimmed FILE_RESPONSE: $(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')"
                 echo "DEBUG: Extracted SHA: $SHA"
+                echo "DEBUG: Extracted SHA: [ "$SHA" == "null"] "
 
 
                 if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
