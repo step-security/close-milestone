@@ -264,7 +264,20 @@ jobs:
                   DIRECTORY=$(dirname "$file")
                   mkdir -p "$DIRECTORY"
 
+                  # Check if directory was successfully created
+                  if [ ! -d "$DIRECTORY" ]; then
+                    echo "❌ Failed to create directory: $DIRECTORY"
+                    continue  # Skip this commit if directory creation failed
+                  fi
+
                   touch "$file"
+
+                  # Check if file was successfully created
+                  if [ ! -f "$file" ]; then
+                    echo "❌ Failed to create file: $file"
+                    continue  # Skip this commit if file creation failed
+                  fi
+
                   echo "✅ Created missing file: $file"
                 else
                   BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
