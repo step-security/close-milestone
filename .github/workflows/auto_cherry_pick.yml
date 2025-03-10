@@ -237,13 +237,22 @@ jobs:
             fi
 
             # Ignore certain files
+            MODIFIED_FILES=$(echo "$COMMIT_DETAILS" | jq -r '.files[].filename' 2>/dev/null || echo "ERROR")
+
+            echo "DEBUG: MODIFIED_FILES Before Filtering:"
+            echo "$MODIFIED_FILES"
+
             FILTERED_FILES=$(echo "$MODIFIED_FILES" | grep -Ev "^package.json$|^package-lock.json$|^yarn.lock$|^node_modules/|^.gitignore")
+
+            echo "DEBUG: FILTERED_FILES After Filtering:"
+            echo "$FILTERED_FILES"
 
             if [ -z "$FILTERED_FILES" ]; then
               echo "⚠️ Skipping commit $COMMIT_HASH as it only contains ignored file changes."
               SKIPPED_COMMITS="${SKIPPED_COMMITS}\n$COMMIT_HASH"
               continue
             fi
+
 
             for file in $FILTERED_FILES; do
                 echo "Processing file: $file"
