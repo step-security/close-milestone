@@ -236,10 +236,6 @@ jobs:
               continue
             fi
 
-
-            echo "DEBUG: MODIFIED_FILES Before Filtering:"
-            echo "$MODIFIED_FILES"
-
             FILTERED_FILES=$(echo "$MODIFIED_FILES" | grep -Ev "^package.json$|^package-lock.json$|^yarn.lock$|^node_modules/|^dist/|^.gitignore" || echo "")
 
             echo "DEBUG: FILTERED_FILES After Filtering:"
