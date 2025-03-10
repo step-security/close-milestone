@@ -252,6 +252,7 @@ jobs:
                 echo "Processing file: $file"
 
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
+                echo "DEBUG: FILE_RESPONSE for $file: $FILE_RESPONSE"
 
                 SHA=$(echo "$FILE_RESPONSE" | jq -r '.sha' 2>/dev/null)
                 if [[ -z "$SHA" || "$SHA" == "null" ]]; then
