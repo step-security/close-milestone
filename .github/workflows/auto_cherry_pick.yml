@@ -252,10 +252,9 @@ jobs:
                 echo "Processing file: $file"
 
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
-                FILE_RESPONSE=$(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
-                SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
-                SHA=$(echo "$SHA" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
-
+                SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null)
+                echo "Processing file echo : $SHA"
+                
                 if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
                   echo "⚠️ File $file does not exist in target repo. Creating it..."
                   DIRECTORY=$(dirname "$file")
