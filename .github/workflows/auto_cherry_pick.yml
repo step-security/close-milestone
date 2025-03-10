@@ -254,39 +254,46 @@ jobs:
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
                 FILE_RESPONSE=$(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
 
-                SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null)
-                echo "DEBUG: RAW FILE_RESPONSE: $FILE_RESPONSE"
-                echo "DEBUG: Trimmed FILE_RESPONSE: $(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')"
-                echo "DEBUG: Extracted SHA: $SHA"
-                echo "DEBUG: Extracted SHA: [ "$SHA" == "null"] "
-
-
-                if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
-                  echo "⚠️ File $file does not exist in target repo. Creating it..."
-
-                  DIRECTORY=$(dirname "$file")
-                  mkdir -p "$DIRECTORY"
-
-                  if [ ! -d "$DIRECTORY" ]; then
-                    echo "❌ Failed to create directory: $DIRECTORY"
-                    continue  # Skip this commit if directory creation failed
-                  fi
-
-                  touch "$file"
-
-                  if [ ! -f "$file" ]; then
-                    echo "❌ Failed to create file: $file"
-                    continue  # Skip this commit if file creation failed
-                  fi
-
-                  echo "✅ Created missing file: $file"
-                else
-                  echo "✅ File already exists: $file"
-                  BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
-                  if [ "$BASE64_CONTENT" != "ERROR" ]; then
-                    echo "$BASE64_CONTENT" > "$file"
-                  fi
+                SHA=$(echo "$FILE_RESPONSE" | jq -r '.sha' 2>/dev/null)
+                if [[ -z "$SHA" || "$SHA" == "null" ]]; then
+                    SHA="null"
                 fi
+
+                echo "DEBUG: FILE_RESPONSE for $file: $FILE_RESPONSE"
+                echo "DEBUG: Extracted SHA: $SHA"
+
+                # Handle missing files
+                if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
+                    echo "⚠️ File $file does not exist in target repo. Creating it..."
+
+                    DIRECTORY=$(dirname "$file")
+
+                    if [ ! -d "$DIRECTORY" ]; then
+                        echo "📁 Creating missing directory: $DIRECTORY"
+                        mkdir -p "$DIRECTORY"
+                        if [ ! -d "$DIRECTORY" ]; then
+                            echo "❌ Directory creation failed: $DIRECTORY"
+                            exit 5
+                        fi
+                    fi
+
+                    echo "📄 Creating missing file: $file"
+                    touch "$file"
+
+                    if [ ! -f "$file" ]; then
+                        echo "❌ Failed to create file: $file"
+                        exit 5  # Exit if we can't create file
+                    fi
+
+                    echo "✅ Successfully created: $file"
+                else
+                   echo "✅ File already exists: $file (SHA: $SHA)"
+                    BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
+                    if [ "$BASE64_CONTENT" != "ERROR" ]; then
+                        echo "$BASE64_CONTENT" > "$file"
+                    fi
+                fi
+
 
                 PATCH=$(echo "$COMMIT_DETAILS" | jq -r '.files[] | select(.filename=="'$file'") | .patch' 2>/dev/null || echo "ERROR")
 
