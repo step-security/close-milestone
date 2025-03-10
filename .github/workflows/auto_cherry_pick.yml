@@ -254,7 +254,7 @@ jobs:
                 FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
                 FILE_RESPONSE=$(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
 
-                SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
+                SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null)
                 echo "DEBUG: RAW FILE_RESPONSE: $FILE_RESPONSE"
                 echo "DEBUG: Trimmed FILE_RESPONSE: $(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')"
                 echo "DEBUG: Extracted SHA: $SHA"
