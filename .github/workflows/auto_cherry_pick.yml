@@ -264,7 +264,7 @@ jobs:
                   DIRECTORY=$(dirname "$file")
                   mkdir -p "$DIRECTORY"
 
-                  echo "" > "$file"
+                  touch "$file"
                   echo "✅ Created missing file: $file"
                 else
                   BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
