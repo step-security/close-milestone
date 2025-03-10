@@ -260,11 +260,16 @@ jobs:
 
                 if [ "$FILE_RESPONSE" == "ERROR" ] || [ -z "$SHA" ] || [ "$SHA" == "null" ]; then
                   echo "⚠️ File $file does not exist in target repo. Creating it..."
-                  echo "" > temp_file.txt  # Create an empty file
+
+                  DIRECTORY=$(dirname "$file")
+                  mkdir -p "$DIRECTORY"
+
+                  echo "" > "$file"
+                  echo "✅ Created missing file: $file"
                 else
                   BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
                   if [ "$BASE64_CONTENT" != "ERROR" ]; then
-                    echo "$BASE64_CONTENT" > temp_file.txt
+                    echo "$BASE64_CONTENT" > "$file"
                   fi
                 fi
 
