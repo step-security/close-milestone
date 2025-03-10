@@ -251,38 +251,38 @@ jobs:
             for file in $FILTERED_FILES; do
                 echo "Processing file: $file"
 
-            FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
-            FILE_RESPONSE=$(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
+                FILE_RESPONSE=$(gh api "repos/$TARGET_REPO/contents/$file?ref=$BRANCH" 2>/dev/null || echo "ERROR")
+                FILE_RESPONSE=$(echo "$FILE_RESPONSE" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
 
-            SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
-            SHA=$(echo "$SHA" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
+                SHA=$(echo "$FILE_RESPONSE" | jq -r .sha 2>/dev/null || echo "null")
+                SHA=$(echo "$SHA" | tr -d '\n' | tr -d ' ')  # Trim whitespace/newlines
 
-            if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
-              echo "⚠️ File $file does not exist in target repo. Creating it..."
+                if [[ "$FILE_RESPONSE" == "ERROR" ]] || [[ -z "$SHA" ]] || [[ "$SHA" == "null" ]] || [[ "$FILE_RESPONSE" == *"Not Found"* ]]; then
+                  echo "⚠️ File $file does not exist in target repo. Creating it..."
 
-              DIRECTORY=$(dirname "$file")
-              mkdir -p "$DIRECTORY"
+                  DIRECTORY=$(dirname "$file")
+                  mkdir -p "$DIRECTORY"
 
-              if [ ! -d "$DIRECTORY" ]; then
-                echo "❌ Failed to create directory: $DIRECTORY"
-                continue  # Skip this commit if directory creation failed
-              fi
+                  if [ ! -d "$DIRECTORY" ]; then
+                    echo "❌ Failed to create directory: $DIRECTORY"
+                    continue  # Skip this commit if directory creation failed
+                  fi
 
-              touch "$file"
+                  touch "$file"
 
-              if [ ! -f "$file" ]; then
-                echo "❌ Failed to create file: $file"
-                continue  # Skip this commit if file creation failed
-              fi
+                  if [ ! -f "$file" ]; then
+                    echo "❌ Failed to create file: $file"
+                    continue  # Skip this commit if file creation failed
+                  fi
 
-              echo "✅ Created missing file: $file"
-            else
-              echo "✅ File already exists: $file"
-              BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
-              if [ "$BASE64_CONTENT" != "ERROR" ]; then
-                echo "$BASE64_CONTENT" > "$file"
-              fi
-            fi
+                  echo "✅ Created missing file: $file"
+                else
+                  echo "✅ File already exists: $file"
+                  BASE64_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 --decode 2>/dev/null || echo "ERROR")
+                  if [ "$BASE64_CONTENT" != "ERROR" ]; then
+                    echo "$BASE64_CONTENT" > "$file"
+                  fi
+                fi
 
                 PATCH=$(echo "$COMMIT_DETAILS" | jq -r '.files[] | select(.filename=="'$file'") | .patch' 2>/dev/null || echo "ERROR")
 
