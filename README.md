@@ -10,6 +10,18 @@ If the milestone should fail if the provided milestone is missing<br>
 Default: false
 
 
+## Environment Variables
+
+### `GITHUB_TOKEN`
+
+**Required** The access token with which the Action does the authentication with
+GitHub
+
+### `CLOSE_MILESTONE_REPOSITORY`
+
+If provided, this variable overrides the repository used to close the milestone
+for. It has to be provided in the format of `<owner>/<repository name>`
+
 ## Outputs
 ### `milestone_id`
 The id of the milestone which has been closed.
