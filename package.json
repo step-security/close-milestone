@@ -1,6 +1,6 @@
 {
   "name": "close-milestone",
-  "author": "Akkjon",
+  "author": "step-security",
   "version": "2.2.0",
   "description": "A GitHub Action to close a milestone by the milestone's name",
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Akkjon/close-milestone.git"
+    "url": "git+https://github.com/step-security/close-milestone.git"
   },
   "keywords": [
     "actions",
@@ -30,9 +30,9 @@
   },
   "license": "SEE LICENCE IN LICENSE-FILE",
   "bugs": {
-    "url": "https://github.com/Akkjon/close-milestone/issues"
+    "url": "https://github.com/step-security/close-milestone/issues"
   },
-  "homepage": "https://github.com/Akkjon/close-milestone#readme",
+  "homepage": "https://github.com/step-security/close-milestone#readme",
   "jest": {
     "preset": "ts-jest",
     "verbose": true,

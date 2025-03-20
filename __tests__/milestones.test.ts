@@ -28,7 +28,7 @@ describe('milestones', () => {
     });
 
     await getMilestones({
-      owner: 'Akkjon',
+      owner: 'step-security',
       name: 'close-milestone',
     });
 
@@ -38,7 +38,7 @@ describe('milestones', () => {
         headers: {
           authorization: 'Bearer token',
         },
-        owner: 'Akkjon',
+        owner: 'step-security',
         repo: 'close-milestone',
       },
     );
@@ -53,7 +53,7 @@ describe('milestones', () => {
     });
     expect(
       await getMilestones({
-        owner: 'Akkjon',
+        owner: 'step-security',
         name: 'close-milestone',
       }),
     ).toStrictEqual([]);
@@ -85,7 +85,7 @@ describe('milestones', () => {
       status: 200,
     });
     await closeMilestone(1, {
-      owner: 'Akkjon',
+      owner: 'step-security',
       name: 'close-milestone',
     });
     expect(mockRequest).toHaveBeenLastCalledWith(
@@ -94,7 +94,7 @@ describe('milestones', () => {
         headers: {
           authorization: 'Bearer token',
         },
-        owner: 'Akkjon',
+        owner: 'step-security',
         repo: 'close-milestone',
         milestone_number: 1,
         state: 'closed',

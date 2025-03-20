@@ -62,7 +62,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Accept: application/vnd.github+json" \
             -d '{"title": "'"$MILESTONE_NAME"'", "state": "open", "description": "Test-Milestone", "due_on": "'"$(date -d '+1 days' '+%FT%TZ')"'"}' \
-            "https://api.github.com/repos/Akkjon/close-milestone-integration-test/milestones")
+            "https://api.github.com/repos/step-security/close-milestone-integration-test/milestones")
 
           MILESTONE_ID=$(echo "$RESPONSE" | jq ".number")
           echo "MILESTONE_ID=$MILESTONE_ID" >> "$GITHUB_OUTPUT"
@@ -77,7 +77,7 @@ jobs:
         uses: ./
         env:
           GITHUB_TOKEN: ${{ secrets.INTEGRATION_TEST_ACCESS_TOKEN }}
-          CLOSE_MILESTONE_REPOSITORY: 'Akkjon/close-milestone-integration-test'
+          CLOSE_MILESTONE_REPOSITORY: 'step-security/close-milestone-integration-test'
         with:
           milestone_name: ${{ steps.create-milestone.outputs.MILESTONE_NAME }}
           crash_on_missing: true
@@ -89,7 +89,7 @@ jobs:
           RESPONSE=$(curl \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/Akkjon/close-milestone-integration-test/milestones?state=all")
+            "https://api.github.com/repos/step-security/close-milestone-integration-test/milestones?state=all")
 
           STATE=$(echo "$RESPONSE" | jq ".[] | select(.number==$ORIGINAL_MILESTONE_ID)" | jq -r ".state")
 
@@ -124,7 +124,7 @@ jobs:
             -X DELETE \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/Akkjon/close-milestone-integration-test/milestones/$MILESTONE_ID"
+            "https://api.github.com/repos/step-security/close-milestone-integration-test/milestones/$MILESTONE_ID"
         env:
           GITHUB_TOKEN: ${{ secrets.INTEGRATION_TEST_ACCESS_TOKEN }}
           MILESTONE_ID: ${{ steps.create-milestone.outputs.MILESTONE_ID }}

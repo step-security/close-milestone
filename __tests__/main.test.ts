@@ -38,24 +38,24 @@ describe('main', () => {
   });
 
   test('run calls authenticate', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     await run();
 
     expect(auth.authenticate).toHaveBeenCalled();
   });
 
   test('run calls getMilestones with correct repo information', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     await run();
 
     expect(milestones.getMilestones).toHaveBeenCalledWith({
-      owner: 'Akkjon',
+      owner: 'step-security',
       name: 'close-milestone',
     });
   });
 
   test('run calls getMilestoneId with response of getMilestones', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     (milestones.getMilestones as jest.Mock).mockResolvedValue([]);
 
     await run();
@@ -67,7 +67,7 @@ describe('main', () => {
   });
 
   test('run does not find milestone with given name and crash_on_missing is true should fail', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     (milestones.getMilestones as jest.Mock).mockResolvedValue([]);
     (milestones.getMilestoneId as jest.Mock).mockReturnValue(null);
     (core.getBooleanInput as jest.Mock).mockReturnValue(true);
@@ -80,7 +80,7 @@ describe('main', () => {
   });
 
   test('run does not find milestone with given name and crash_on_missing is false should log warning', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     (milestones.getMilestones as jest.Mock).mockResolvedValue([]);
     (milestones.getMilestoneId as jest.Mock).mockReturnValue(null);
     (core.getBooleanInput as jest.Mock).mockReturnValue(false);
@@ -93,20 +93,20 @@ describe('main', () => {
   });
 
   test('run calls closeMilestone with id of getMilestoneId', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     (milestones.getMilestones as jest.Mock).mockResolvedValue([]);
     (milestones.getMilestoneId as jest.Mock).mockReturnValue(1);
 
     await run();
 
     expect(milestones.closeMilestone).toHaveBeenCalledWith(1, {
-      owner: 'Akkjon',
+      owner: 'step-security',
       name: 'close-milestone',
     });
   });
 
   test('run sets milestone_id on successfull closing of milestone', async () => {
-    process.env.GITHUB_REPOSITORY = 'Akkjon/close-milestone';
+    process.env.GITHUB_REPOSITORY = 'step-security/close-milestone';
     (milestones.getMilestones as jest.Mock).mockResolvedValue([]);
     (milestones.getMilestoneId as jest.Mock).mockReturnValue(1);
 

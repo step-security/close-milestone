@@ -3,7 +3,7 @@ exports.id = 870;
 exports.ids = [870];
 exports.modules = {
 
-/***/ 120:
+/***/ 1120:
 /***/ ((module) => {
 
 var __webpack_unused_export__;
@@ -180,7 +180,7 @@ __webpack_unused_export__ = defaultContentType
 
 /***/ }),
 
-/***/ 870:
+/***/ 9870:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -566,7 +566,7 @@ function universal_user_agent_getUserAgent() {
 }
 
 // EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
-var fast_content_type_parse = __webpack_require__(120);
+var fast_content_type_parse = __webpack_require__(1120);
 ;// CONCATENATED MODULE: ./node_modules/@octokit/request/node_modules/@octokit/request-error/dist-src/index.js
 class RequestError extends Error {
   name;
