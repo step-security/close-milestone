@@ -3462,7 +3462,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
-//import axios, { isAxiosError } from 'axios';
 const core = __importStar(__nccwpck_require__(484));
 const auth_1 = __nccwpck_require__(81);
 const milestones_1 = __nccwpck_require__(212);
@@ -3474,7 +3473,6 @@ const milestones_1 = __nccwpck_require__(212);
 async function run() {
     const milestoneName = core.getInput('milestone_name');
     try {
-        //await validateSubscription();
         const repoInformation = getRepositoryInformation();
         await (0, auth_1.authenticate)();
         const milestones = await (0, milestones_1.getMilestones)(repoInformation);
@@ -3512,21 +3510,6 @@ function getRepositoryInformation() {
         name,
     };
 }
-// async function validateSubscription(): Promise<void> {
-//   const API_URL = `https://agent.api.stepsecurity.io/v1/github/${process.env.GITHUB_REPOSITORY}/actions/subscription`;
-//   try {
-//     await axios.get(API_URL, { timeout: 3000 });
-//   } catch (error) {
-//     if (isAxiosError(error) && error.response) {
-//       core.error(
-//         'Subscription is not valid. Reach out to support@stepsecurity.io',
-//       );
-//       process.exit(1);
-//     } else {
-//       core.info('Timeout or API not reachable. Continuing to next step.');
-//     }
-//   }
-// }
 
 
 /***/ }),

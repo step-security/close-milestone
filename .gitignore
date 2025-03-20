@@ -1,8 +1,4 @@
-# Dependencies
-node_modules/
-
-# Build output
-.DS_Store
+node_modules
 
 .env
 .env.test
