@@ -1,10 +1,11 @@
 name: Release GitHub Actions
 
 on:
+  # checkov:skip=CKV_GHA_7 The workflow requires user input for manual triggering
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag for the release"
+        description: 'Tag for the release'
         required: true
 
 permissions:
@@ -18,4 +19,4 @@ jobs:
       contents: write
     uses: step-security/reusable-workflows/.github/workflows/actions_release.yaml@v1
     with:
-      tag: "${{ github.event.inputs.tag }}"
+      tag: '${{ github.event.inputs.tag }}'
