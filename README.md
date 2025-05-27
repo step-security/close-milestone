@@ -1,6 +1,7 @@
 # Remove-milestone
 
 A GitHub Action to remove a milestone by the milestone's name
+
 [![GitHub release](https://img.shields.io/github/tag/step-security/close-milestone.svg)](https://gitHub.com/step-security/close-milestone/releases/)
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 ![CI](https://github.com/step-security/close-milestone/actions/workflows/ci.yml/badge.svg)
