@@ -1,12 +1,13 @@
 name: Auto Cherry-Pick from Upstream
 
 on:
+  # checkov:skip=CKV_GHA_7 The workflow requires user input for manual triggering
   workflow_dispatch:
     inputs:
       base_branch:
-        description: "Base branch to create the PR against"
+        description: 'Base branch to create the PR against'
         required: true
-        default: "main"
+        default: 'main'
 
   schedule:
     - cron: "0 0 * * 1"
@@ -21,6 +22,6 @@ jobs:
   audit-fix:
     uses: step-security/reusable-workflows/.github/workflows/auto_cherry_pick.yaml@v1
     with:
-      original-owner: "Akkjon"
-      repo-name: "close-milestone"
+      original-owner: 'Akkjon'
+      repo-name: 'close-milestone'
       base_branch: ${{ inputs.base_branch }}
