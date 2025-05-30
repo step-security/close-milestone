@@ -19,11 +19,10 @@ permissions:
   issues: write
 
 jobs:
-  audit-fix:
+  cherry-pick:
     uses: step-security/reusable-workflows/.github/workflows/auto_cherry_pick.yaml@v1
     with:
-      original-owner: "dorny"
-      repo-name: "test-reporter"
+      original-owner: "	Akkjon"
+      repo-name: "close-milestone"
       base_branch: ${{ inputs.base_branch }}
       script: ${{ inputs.script || 'npm run all' }}
-      
