@@ -63,13 +63,11 @@
     ]
   },
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.1",
+    "@actions/core": "^2.0.0",
     "@octokit/auth-action": "^5.1.1",
     "@octokit/request": "^9.1.4"
   },
   "devDependencies": {
-    "@github/local-action": "^2.2.1",
     "@jest/globals": "^29.7.0",
     "@octokit/types": "^13.6.2",
     "@types/jest": "^29.5.14",
