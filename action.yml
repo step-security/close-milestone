@@ -17,5 +17,5 @@ outputs:
   milestone_id:
     description: 'The id of the milestone which has been closed.'
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
